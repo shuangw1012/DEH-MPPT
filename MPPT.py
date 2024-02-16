@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 plt.rcParams["font.family"] = "Times New Roman"
 
 if __name__=='__main__':
+    
     def calculate_intersection(voltage_values,current_values,slope):
         linear_current_values = slope * voltage_values
         
@@ -28,7 +29,7 @@ if __name__=='__main__':
         intersecting_current = current_values[min_index]
         return (intersecting_voltage,intersecting_current)
     
-    # Example module parameters for the Canadian Solar CS5P-220M:
+    # technical parameters for the PV module
     parameters = {
         'Name': 'Trina Solar TSM-670DE21',
         'A_c': 3.08,
@@ -49,19 +50,21 @@ if __name__=='__main__':
         'Version': '2023.10.31',
     }
     
-    start = 3000
+    # input the irradiance and the temperature
+    start = 0
     delta_t = 24*7
-    conditions = pd.read_csv(os.getcwd()+'/pv_system_output_tracking_0.3.csv').fillna(0).iloc[start:start+delta_t]
-
+    conditions = pd.read_csv(os.getcwd()+'/pv_system_output.csv').fillna(0).iloc[start:start+delta_t]
     conditions.columns = ['Time', 'Geff', 'Tcell']
     
     output_MPPT = np.array([])
     output_OP = np.array([])
     for t in range(start,start+delta_t):
-        if conditions['Geff'][t] <100:
+        if conditions['Geff'][t] <10:
             output_MPPT = np.append(output_MPPT,0)
             output_OP = np.append(output_OP,0)
             continue
+        
+        # calculate the five parameters at the given input condition
         IL, I0, Rs, Rsh, nNsVth = pvsystem.calcparams_desoto(
             conditions['Geff'][t], # The irradiance (W/m2) that is converted to photocurrent.
             conditions['Tcell'][t], # The average cell temperature of cells within a module in C.
@@ -75,7 +78,7 @@ if __name__=='__main__':
             dEgdT=-0.0002677
         )
         
-        # plug the parameters into the SDE and solve for IV curves:
+        # plug the parameters into the single diode equation and solve for IV curves:
         curve_info = pvsystem.singlediode(
             photocurrent=IL,
             saturation_current=I0,
@@ -89,14 +92,17 @@ if __name__=='__main__':
         curve_i = pvsystem.i_from_v(resistance_shunt=Rsh, resistance_series=Rs, nNsVth=nNsVth, voltage=curve_v, 
                           saturation_current=I0, photocurrent=IL, method='lambertw')
         
+        # maximum power point
         v_mp = curve_info['v_mp']
         i_mp = curve_info['i_mp']
         
-        R_pipe = 0.0119188
-        N_panel = 10
+        # calculation for the V-I limitation due to the fixed load
+        R_pipe = 0.0119188 # pipe resistance
+        N_panel = 10 # number of panels in a string
         slope1 = 1/(R_pipe*N_panel*1**2)
         slope2 = 1/(R_pipe*N_panel*5**2)
         
+        # calculate the intersection points with V-I curve
         v2,i2 = calculate_intersection(curve_v,curve_i,slope2)
         v1,i1 = calculate_intersection(curve_v,curve_i,slope1)
         
@@ -113,14 +119,11 @@ if __name__=='__main__':
         '''
         # plot the calculated curves:
         fig = plt.figure(figsize=(6,4))
-
         plt.plot(curve_v, curve_i)
-        
         plt.plot(curve_v,curve_v*slope1,label = 'k=1')
         plt.plot(curve_v,curve_v*slope2,label = 'k=5')
         plt.plot([v_mp], [i_mp], ls='', marker='o', c='k',label = 'MPP')
         plt.plot([v_ope], [i_ope], ls='', marker='x', c='red',label = 'OP')
-        
         plt.xlabel('Module voltage [V]')
         plt.ylabel('Module current [A]')
         plt.xlim(0,50)
@@ -133,6 +136,8 @@ if __name__=='__main__':
         '''
         
     print (sum(output_MPPT),sum(output_OP))
+    
+    # plot the output
     X = np.linspace(1,len(output_MPPT),len(output_MPPT))
     fig = plt.figure(figsize=(6,4))
 

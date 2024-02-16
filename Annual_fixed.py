@@ -15,19 +15,17 @@ import matplotlib.pyplot as plt
 plt.rcParams["font.family"] = "Times New Roman"
 
 if __name__=='__main__':
-
+    
+    # load weather data
     filename = os.getcwd()+'/AUS_ACT.Canberra.949260_IWEC.epw'
     weather, metadata = pvlib.iotools.read_epw(filename)
     
+    # input location info
     coordinates = (-35.2809, 149.1300, 'Canberra', 577, 'Australia/Sydney')
-    
-    
-    #tz = 'Australia/Sydney'
     times  = times = weather.index
     latitude, longitude, name, altitude, timezone = coordinates
     
-    temperature_model_parameters = pvlib.temperature.TEMPERATURE_MODEL_PARAMETERS['sapm']['open_rack_glass_glass']
-    
+    # calculate solar positions
     solpos = pvlib.solarposition.get_solarposition(
         time=times,
         latitude=latitude,
@@ -38,9 +36,12 @@ if __name__=='__main__':
     )
     
     dni_extra = pvlib.irradiance.get_extra_radiation(weather.index)
+    
+    # define the tilt and azmuth angles
     system = {'surface_azimuth': 180}
     system['surface_tilt'] = latitude
     
+    # calculate total irradiance
     total_irradiance = pvlib.irradiance.get_total_irradiance(
         system['surface_tilt'],
         system['surface_azimuth'],
@@ -53,6 +54,8 @@ if __name__=='__main__':
         model='haydavies',
     )
     
+    # calculate cell temperatures
+    temperature_model_parameters = pvlib.temperature.TEMPERATURE_MODEL_PARAMETERS['sapm']['open_rack_glass_glass']
     cell_temperature = pvlib.temperature.sapm_cell(
         total_irradiance['poa_global'],
         weather["temp_air"],
@@ -60,8 +63,10 @@ if __name__=='__main__':
         **temperature_model_parameters,
     )
     
+    # ASSUME that the effective irradiance is equal to the total irradiance
     effective_irradiance_proxy = total_irradiance['poa_global']
 
+    # output
     data_to_export = pd.DataFrame({
         'POA Global Irradiance': total_irradiance['poa_global'],
         'Cell Temperature': cell_temperature

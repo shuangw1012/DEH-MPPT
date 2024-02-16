@@ -1,0 +1,8 @@
+Annual_fixed.py
+The python script to return the effective irradiance and cell temperature for a FIXED TILT ANGLE PV system
+
+Annual_single.py
+The python script to return the effective irradiance and cell temperature for a SINGLE AXIS TRACKING PV system
+
+MPPT.py
+Maximum Power Point Tracking for the DEH system
