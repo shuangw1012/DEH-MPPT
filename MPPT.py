@@ -13,6 +13,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 plt.rcParams["font.family"] = "Times New Roman"
 
+
 if __name__=='__main__':
     
     def calculate_intersection(voltage_values,current_values,slope):
@@ -52,13 +53,14 @@ if __name__=='__main__':
     
     # input the irradiance and the temperature
     start = 0
-    delta_t = 24*7
+    delta_t = 8760
     conditions = pd.read_csv(os.getcwd()+'/pv_system_output.csv').fillna(0).iloc[start:start+delta_t]
     conditions.columns = ['Time', 'Geff', 'Tcell']
     
     output_MPPT = np.array([])
     output_OP = np.array([])
     for t in range(start,start+delta_t):
+        print (t)
         if conditions['Geff'][t] <10:
             output_MPPT = np.append(output_MPPT,0)
             output_OP = np.append(output_OP,0)
@@ -98,7 +100,7 @@ if __name__=='__main__':
         
         # calculation for the V-I limitation due to the fixed load
         R_pipe = 0.0119188 # pipe resistance
-        N_panel = 10 # number of panels in a string
+        N_panel = 20 # number of panels in a string
         slope1 = 1/(R_pipe*N_panel*1**2)
         slope2 = 1/(R_pipe*N_panel*5**2)
         
@@ -129,12 +131,11 @@ if __name__=='__main__':
         plt.xlim(0,50)
         plt.ylim(0,22)
         plt.legend(loc=(0.8, 0.7))
-        plt.title('G = %s W/m2, T = %s C'%(int(conditions['Geff'][t]),int(conditions['Tcell'][t])))
+        plt.title('t = %s h, G = %s W/m2, T = %s C'%(t%24,int(conditions['Geff'][t]),int(conditions['Tcell'][t])))
         plt.tight_layout()
         plt.savefig(os.getcwd()+'/Figure-VI_%s.png'%t,dpi=500)
         plt.close(fig)
         '''
-        
     print (sum(output_MPPT),sum(output_OP))
     
     # plot the output
@@ -152,26 +153,6 @@ if __name__=='__main__':
     plt.tight_layout()
     plt.savefig(os.getcwd()+'/output.png',dpi=500)
     plt.close(fig)
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
         
     '''
     Input_voltage = np.linspace(0,45,20)
